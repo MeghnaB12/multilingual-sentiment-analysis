@@ -1,4 +1,4 @@
-### Multilingual Sentiment Analysis (Unsloth & QLoRA)
+## Multilingual Sentiment Analysis (Unsloth & QLoRA)
 
 This project contains the complete code for fine-tuning a Large Language Model (LLM) to perform binary sentiment classification on multi-lingual text. The model is built using the Unsloth library and leverages Parameter-Efficient Fine-Tuning (PEFT) techniques to run on consumer hardware.
 
