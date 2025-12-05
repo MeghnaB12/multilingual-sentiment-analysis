@@ -1,98 +1,78 @@
-# Multilingual Sentiment Analysis with Unsloth & QLoRA
+### Multilingual Sentiment Analysis (Unsloth & QLoRA)
 
-This project demonstrates how to fine-tune the **LLaMA 3.1 8B Instruct** model for a Multi-Lingual Sentiment Analysis task. It utilizes the **Unsloth** library to achieve faster training and memory efficiency through 4-bit quantization and LoRA (Low-Rank Adaptation).
+This project contains the complete code for fine-tuning a Large Language Model (LLM) to perform binary sentiment classification on multi-lingual text. The model is built using the Unsloth library and leverages Parameter-Efficient Fine-Tuning (PEFT) techniques to run on consumer hardware.
 
-## 🚀 Key Features
+## 🚀 Key Features & Goals
 
-* **Model:** LLaMA 3.1 8B (Instruct version).
-* **Optimization:** Uses `unsloth` for 2x faster training and 4-bit quantization (`load_in_4bit`).
-* **Fine-Tuning Method:** QLoRA (Quantized Low-Rank Adaptation) targeting specific attention modules (`q_proj`, `k_proj`, etc.).
-* **Training Library:** Hugging Face `trl` (SFTTrainer) and `transformers`.
-* **Task:** Binary Sentiment Classification (Positive/Negative).
+The pipeline is engineered for maximum memory efficiency and speed within a Kaggle Docker environment, utilizing **4-bit Quantization** and **Low-Rank Adaptation (LoRA)**.
 
-## 🛠️ Prerequisites & Installation
+* **SOTA Architecture:** Utilizes Meta's **LLaMA 3.1 8B Instruct** model as the foundational backbone.
+* **Hyper-Optimization:** leverages **Unsloth** to achieve 2x faster training and significantly lower memory usage compared to standard Hugging Face implementations.
+* **Parameter Efficiency:** Implements **QLoRA** to fine-tune only a small fraction of the model's parameters while freezing the core weights.
+* **Precision:** Uses **Bfloat16** (or Float16) mixed precision training to accelerate computation.
 
-This environment is optimized for a CUDA-enabled GPU (specifically designed to run in a Kaggle Docker environment).
+## 📈 Methodology
 
-### Dependencies
+The core of this solution is **Instruction Tuning** using the SFTTrainer. Instead of retraining the full model, we inject trainable rank decomposition matrices into specific layers of the Transformer architecture.
 
-The script automatically installs the necessary dependencies, including specific CUDA 12.1 compatible versions of PyTorch and Xformers.
+1. Data Formatting (Prompt Engineering)
+
+To align the model with the classification task, the raw CSV data is transformed into a structured instruction format:
+* **Structure:** The model is fed a prompt containing an instruction, the input sentence, and the expected label.
+* **Template:**
+    ```text
+    ### Input: {sentence}
+    ### Response: {label}
+    ```
+* **Tokenization:** Data is tokenized with a sequence length of 2048 to handle varying text lengths.
+
+2. The Model (LoRA Configuration)
+
+The model used is **unsloth/llama-3-8b-instruct-bnb-4bit**.
+* **Quantization:** Loaded in 4-bit precision to fit within GPU memory constraints.
+* **Target Modules:** LoRA adapters are attached to all linear layers: `q_proj`, `k_proj`, `v_proj`, `up_proj`, `down_proj`, `o_proj`, and `gate_proj`.
+* **Rank & Alpha:** Configured with `r=16` and `lora_alpha=16` to balance plasticity and stability.
+* **Gradient Checkpointing:** Enabled to further reduce VRAM usage during backpropagation.
+
+3. Training & Inference
+
+* **Optimizer:** `adamw_8bit` (Paged AdamW) to optimize memory.
+* **Trainer:** Hugging Face `SFTTrainer` with `packing=True` to maximize training throughput.
+* **Inference:** The notebook utilizes `FastLanguageModel.for_inference` which enables native 2x faster inference speeds. It generates tokens, decodes the output, and parses the text to extract "Positive" or "Negative" labels.
+
+## 🛠️ Tech Stack
+
+* **Core:** Python 3
+* **LLM Engine:** Unsloth, Transformers (Hugging Face)
+* **Fine-Tuning:** PEFT, TRL (SFTTrainer)
+* **Hardware Acceleration:** CUDA 12.1, Xformers
+* **Data Handling:** Pandas, Datasets
+* **Metrics:** Scikit-learn (Accuracy, Confusion Matrix)
+
+## 🏃 Running the Project
+
+## 1. Dependencies
+
+It is highly recommended to run this in a **Kaggle Notebook** (GPU T4 x2 or P100) to ensure compatibility with the pre-compiled CUDA kernels.
 
 ```bash
-pip install pip3-autoremove
-pip-autoremove torch torchvision torchaudio -y
-pip install torch xformers --index-url [https://download.pytorch.org/whl/cu121](https://download.pytorch.org/whl/cu121)
-pip install unsloth
-pip install --no-deps trl peft accelerate bitsandbytes datasets
+pip install unsloth "xformers<0.0.27" --no-deps trl peft accelerate bitsandbytes
 ```
 
-### 📂 Dataset Structure
+## 2. Dataset
+   
+This model was trained on the multilingual sentiment analysis dataset as part of a university challenge. The data consists of a train.csv and test.csv containing mixed-language sentences and their corresponding sentiment labels. Due to privacy and access restrictions, the dataset is not publicly available and is not included in this repository.
 
-The script expects a dataset (CSV format) located in /kaggle/input/multi-lingual-sentiment-analysis/.
+Therefore, the script cannot be run out-of-the-box without downloading the specific competition data separately and placing it in the correct directory structure.
 
-Required Columns:
 
-sentence: The input text to be analyzed.
+## 3. Notebook Review 
 
-label: The sentiment label (e.g., 'Positive', 'Negative').
+The provided code serves as a reference implementation for efficient LLM fine-tuning, including:
 
-⚙️ Model Configuration
-Base Model
 
-Path: /kaggle/input/llama-3.1/transformers/8b-instruct/2
+* Model Initialization: Loading 4-bit models and attaching adapters.
 
-Sequence Length: 2048 tokens
+* Training Loop: Configuring TrainingArguments for gradient accumulation and learning rate scheduling.
 
-Dtype: Auto-detected (Float16 or Bfloat16 depending on GPU)
-
-LoRA Configuration
-
-Parameter-Efficient Fine-Tuning is applied with the following settings:
-
-Rank (r): 16
-
-Alpha: 16
-
-Target Modules: q_proj, k_proj, v_proj, up_proj, down_proj, o_proj, gate_proj
-
-Dropout: 0
-
-Bias: None
-
-🧠 Training Pipeline
-Prompt Formatting: The input text is wrapped in a structured instruction prompt:
-
-Plaintext
-Classify the text into 'Positive', 'Negative', and return the answer as the predicted sentiment.
-### Input: {sentence}
-### Response: {label} <|end_of_text|>
-SFTTrainer Settings:
-
-Optimizer: adamw_8bit (reduces memory usage).
-
-Batch Size: 2 per device (with gradient accumulation steps = 4).
-
-Learning Rate: 3e-4 (Linear scheduler).
-
-Steps: Capped at max_steps=70 for this run (can be adjusted for full convergence).
-
-Packing: Enabled (packs multiple short sequences into the context window).
-
-🔮 Inference & Prediction
-The inference process generates labels for the test set:
-
-Fast Inference Mode: FastLanguageModel.for_inference(model) enables native 2x faster inference.
-
-Generation: The model generates a response based on the prompt.
-
-Parsing: The script parses the text after ### Response: to extract the class label.
-
-Fallback: If the model generates an unknown category, it defaults to "Positive".
-
-📊 Output
-The script generates a submission.csv file containing:
-
-ID: Row identifier.
-
-label: The predicted sentiment (Positive/Negative).
-
+* Submission Generation: A dedicated prediction loop that iterates through the test set, parses the LLM response, and handles edge cases before saving to submission.csv.
