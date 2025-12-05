@@ -1,4 +1,4 @@
-# LLaMA 3.1 Sentiment Analysis with Unsloth & QLoRA
+# Multilingual Sentiment Analysis with Unsloth & QLoRA
 
 This project demonstrates how to fine-tune the **LLaMA 3.1 8B Instruct** model for a Multi-Lingual Sentiment Analysis task. It utilizes the **Unsloth** library to achieve faster training and memory efficiency through 4-bit quantization and LoRA (Low-Rank Adaptation).
 
@@ -26,7 +26,8 @@ pip install unsloth
 pip install --no-deps trl peft accelerate bitsandbytes datasets
 ```
 
-📂 Dataset Structure
+### 📂 Dataset Structure
+
 The script expects a dataset (CSV format) located in /kaggle/input/multi-lingual-sentiment-analysis/.
 
 Required Columns:
@@ -95,18 +96,3 @@ ID: Row identifier.
 
 label: The predicted sentiment (Positive/Negative).
 
-📜 Usage
-To run this script:
-
-Ensure you have a GPU environment (e.g., Kaggle Notebook, Google Colab).
-
-Mount the input datasets in the expected directories.
-
-Execute the Python script cells sequentially.
-
-🤝 Credits
-Unsloth: For the optimized LLaMA implementation.
-
-Hugging Face: For the Transformers and TRL libraries.
-
-Meta AI: For the LLaMA 3.1 model weights.
