@@ -2,7 +2,7 @@
 
 This project contains the complete code for fine-tuning a Large Language Model (LLM) to perform binary sentiment classification on multi-lingual text. The model is built using the Unsloth library and leverages Parameter-Efficient Fine-Tuning (PEFT) techniques to run on consumer hardware.
 
-## 🚀 Key Features & Goals
+## 🚀 Key Features
 
 The pipeline is engineered for maximum memory efficiency and speed within a Kaggle Docker environment, utilizing **4-bit Quantization** and **Low-Rank Adaptation (LoRA)**.
 
